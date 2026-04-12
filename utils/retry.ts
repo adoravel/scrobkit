@@ -1,3 +1,5 @@
+import { Result } from "~/lib/result.ts";
+
 export interface RetryOptions {
 	maxAttempts?: number;
 	baseDelayMs?: number;
@@ -17,6 +19,17 @@ const defaults: Required<Omit<RetryOptions, "onRetry">> = {
 function jitteredDelay(attempt: number, base: number, cap: number): number {
 	const ceiling = Math.min(cap, base * (2 ** attempt));
 	return Math.floor(Math.random() * ceiling);
+}
+
+export function withRetryR<L, R = never>(
+	fn: () => Promise<Result<L, R>>,
+	opts: RetryOptions = {},
+): Promise<L> {
+	return withRetry(() =>
+		fn().then((result) => {
+			if (!result.ok) throw result.error;
+			return result.value;
+		}), opts);
 }
 
 export async function withRetry<T>(

@@ -5,7 +5,7 @@ export const SKIP_PREFIX = "#SKIP:";
 
 const COLUMNS = ["artist", "album", "title", "date"] as const;
 
-export interface Track {
+export interface DocumentTrack {
 	artist: string;
 	album: string;
 	title: string;
@@ -15,7 +15,7 @@ export interface Track {
 export interface CsvDocument {
 	path: string;
 	rawLines: string[];
-	pending: Array<{ track: Track; lineIndex: number }>;
+	pending: Array<{ track: DocumentTrack; lineIndex: number }>;
 	skippedCount: number;
 }
 
@@ -83,7 +83,7 @@ export function markSkipped(
 	return Ok({ ...doc, rawLines });
 }
 
-export function saveCsvDocument(path: string, tracks: Track[]): Result<void> {
+export function saveCsvDocument(path: string, tracks: DocumentTrack[]): Result<void> {
 	const header = COLUMNS.join(",");
 	const rows = tracks.map((t) => [escape(t.artist), escape(t.album), escape(t.title), escape(t.date)].join(","));
 
@@ -99,7 +99,7 @@ function parse(
 	line: string,
 	index: number,
 	path: string,
-): Result<Track> {
+): Result<DocumentTrack> {
 	const fields = split(line);
 
 	if (fields.length < 3) {
