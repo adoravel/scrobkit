@@ -1,0 +1,3 @@
+[submodule "third-party/lotus"]
+	path = third-party/lotus
+	url = https://github.com/katelyynn/lotus
