@@ -1,17 +1,16 @@
-import { PendingEntry, PipelineOptions, PipelineSummary, runPipeline } from "~/cli/pipeline.ts";
-import { describe } from "~/lib/errors.ts";
+import { PendingEntry, PipelineOptions, PipelineSummary, resolveTimestamp, runPipeline } from "~/cli/pipeline.ts";
 import { ScrobblerLogTrack } from "~/lib/format/scrobbler-log/mod.ts";
 import { deleteLog, readScrobblerLog } from "~/lib/format/scrobbler-log/io.ts";
 
 type ScrobblerLogContext = Record<PropertyKey, never>;
 
-function toPendingEntry(track: ScrobblerLogTrack): PendingEntry<ScrobblerLogContext> {
+function toPendingEntry(track: ScrobblerLogTrack, index: number): PendingEntry<ScrobblerLogContext> {
 	return {
 		meta: {
-			artist: track.title,
+			artist: track.artist,
 			album: track.album || undefined,
 			title: track.title,
-			timestamp: track.timestamp,
+			timestamp: resolveTimestamp(index, track.timestamp),
 		},
 		context: {},
 	};
@@ -20,13 +19,12 @@ function toPendingEntry(track: ScrobblerLogTrack): PendingEntry<ScrobblerLogCont
 export async function runScrobblerLogPipeline(
 	path: string,
 	opts: PipelineOptions<ScrobblerLogContext>,
-	onProgress: (current: number, total: number, meta: any, status: any, detail?: string) => void,
 ): Promise<PipelineSummary> {
 	const log = await readScrobblerLog(path);
 	if (!log.ok) throw new Error(log.error.message);
 
 	const pending = log.value.tracks.map(toPendingEntry);
-	const summary = await runPipeline<ScrobblerLogContext>(pending, { ...opts }, onProgress);
+	const summary = await runPipeline<ScrobblerLogContext>(pending, { ...opts });
 
 	if (summary.failed === 0 && !opts.dryRun) {
 		console.log(`\n  \u2713 sync complete, removing .scrobbler.log...`);

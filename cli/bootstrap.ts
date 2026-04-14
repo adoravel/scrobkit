@@ -1,6 +1,6 @@
 import { type Config, loadConfig, updateConfig } from "~/lib/config.ts";
 import { dim, log } from "~/cli/formatter.ts";
-import { AppError, describe } from "~/lib/errors.ts";
+import { AppError } from "~/lib/errors.ts";
 import { Ok, Result } from "~/lib/result.ts";
 import { ask } from "~/utils/prompt.ts";
 import { italic } from "@std/fmt/colors";

@@ -1,5 +1,5 @@
 import { CsvDocument } from "~/lib/format/csv/mod.ts";
-import { PendingEntry, PipelineOptions, PipelineSummary, runPipeline } from "~/cli/pipeline.ts";
+import { PendingEntry, PipelineOptions, PipelineSummary, resolveTimestamp, runPipeline } from "~/cli/pipeline.ts";
 import { loadCsvDocument, markSkipped } from "~/lib/format/csv/io.ts";
 import { describe } from "~/lib/errors.ts";
 import { symbols } from "~/cli/formatter.ts";
@@ -7,13 +7,13 @@ import { dim } from "@std/fmt/colors";
 
 type CsvContext = { lineIndex: number };
 
-function toPendingEntry(entry: CsvDocument["pending"][number]): PendingEntry<CsvContext> {
+function toPendingEntry(entry: CsvDocument["pending"][number], index: number): PendingEntry<CsvContext> {
 	return {
 		meta: {
-			artist: entry.track.title,
+			artist: entry.track.artist,
 			album: entry.track.album || undefined,
 			title: entry.track.title,
-			timestamp: Math.floor(new Date(entry.track.date).getTime() / 1000),
+			timestamp: resolveTimestamp(index, entry.track.date),
 		},
 		context: {
 			lineIndex: entry.lineIndex,
@@ -24,7 +24,6 @@ function toPendingEntry(entry: CsvDocument["pending"][number]): PendingEntry<Csv
 export async function runCsvPipeline(
 	path: string,
 	opts: PipelineOptions<CsvContext>,
-	onProgress: (current: number, total: number, meta: any, status: any, detail?: string) => void,
 ): Promise<PipelineSummary> {
 	const document = await loadCsvDocument(path);
 	if (!document.ok) throw new Error(document.error.message);
@@ -45,5 +44,5 @@ export async function runCsvPipeline(
 			}
 			return skip;
 		},
-	}, onProgress);
+	});
 }

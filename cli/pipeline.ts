@@ -2,17 +2,17 @@ import { type Config } from "~/lib/config.ts";
 import { countScrobblesInRange, scrobble, ScrobblePayload, ScrobbleResult } from "~/api/lastfm.ts";
 import { AppError, describe } from "~/lib/errors.ts";
 import { sleep, withRetryR } from "~/utils/retry.ts";
-import { Ok, Result } from "~/lib/result.ts";
+import { Result } from "~/lib/result.ts";
 import { symbols } from "~/cli/formatter.ts";
-import { dim, yellow } from "@std/fmt/colors";
+import { dim, italic, yellow } from "@std/fmt/colors";
 
-const DAILY_SCROBBLE_LIMIT: number = 2880;
+export const DAILY_SCROBBLE_LIMIT: number = 2880;
+export const TIMESTAMP_LIMIT = 1_200_960; // ~13.9 days
 
 export type PipelineTrackMeta = ScrobblePayload;
 
 export interface PipelineOptions<TContext = void> {
 	readonly config: Omit<Required<Config>, "password">;
-	readonly sessionKey: string;
 	readonly dryRun?: boolean;
 	readonly delayMs?: number;
 
@@ -113,17 +113,19 @@ export function reportPipelineProgress(
 	status: PipelineProgressStatus,
 	detail?: string,
 ) {
-	const prefix = dryRun ? "  \u{1F6E0} 𝘥𝘳𝘺 𝘳𝘶𝘯  " : "  ";
+	const prefix = dryRun ? `  \u{1F6E0}  ${italic("dry run")}  ` : "  ";
 
 	const track = yellow(`"${meta.artist} - ${meta.title}"`);
 	const progress = prefix + dim(`[${current}/${total}]`);
 
+	const timestamp = new Date(meta.timestamp * 1000).toLocaleString();
+
 	switch (status) {
 		case "ok":
-			console.log(`${progress} ${symbols.success} ${track}`);
+			console.log(`${progress} ${symbols.success} ${track} ${dim("@ " + timestamp)}`);
 			break;
 		case "ignored":
-			console.warn(`${progress} ${symbols.forbid} Ignored by Last.fm: ${track}`);
+			console.warn(`${progress} ${symbols.forbid} Ignored by Last.fm: ${track} ${dim("@ " + timestamp)}`);
 			break;
 		case "failed":
 			console.error(
@@ -177,7 +179,7 @@ export async function runPipeline<TContext>(
 
 		try {
 			const result: ScrobbleResult = await withRetryR(
-				() => scrobble(opts.config.apiKey, opts.config.secret, opts.sessionKey, meta),
+				() => scrobble(opts.config.apiKey, opts.config.secret, opts.config.sessionKey, meta),
 				{
 					maxAttempts: 4,
 					baseDelayMs: 500,
@@ -218,10 +220,37 @@ export async function runPipeline<TContext>(
 }
 
 /**
- * generate evenly-spaced timestamps for tracks that have no date.
- * starts 13.9 days before now and steps 30s per track
+ * assigns a quasi-uniformly spaced timestamp to a track with a or date that's either older than 14 days
+ * or missing.
+ *
+ * t₀ = (now − 13.9 days), with fixed increment Δt = 30 s per track.
  */
-export function generateTimestamps(count: number): number[] {
-	const begin = Math.floor(Date.now() / 1_000) - 1_200_960;
-	return Array.from({ length: count }, (_, i) => begin + (i + 1) * 30);
+export function generateTimestamp(index: number, jitter = 10): number {
+	const t0 = Math.floor(Date.now() / 1_000) - TIMESTAMP_LIMIT;
+
+	// uniform noise ε ∈ [-jitter, +jitter]
+	const epsilon = Math.floor((Math.random() * 2 - 1) * jitter);
+	return t0 + index * 30 + epsilon;
+}
+
+export function resolveTimestamp(index: number, input?: string | number): number {
+	let ts: number | undefined;
+
+	if (typeof input === "number") {
+		ts = input > 1e9 ? input : undefined;
+	} else if (input) {
+		const parsed = Date.parse(input);
+		if (!isNaN(parsed)) {
+			ts = Math.floor(parsed / 1000);
+		}
+	}
+
+	if (ts !== undefined) {
+		const now = Math.floor(Date.now() / 1000);
+		if (now - ts <= TIMESTAMP_LIMIT) {
+			return ts;
+		}
+	}
+
+	return generateTimestamp(index);
 }

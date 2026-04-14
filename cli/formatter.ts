@@ -1,11 +1,11 @@
-import { cyan, dim, gray, green, red, yellow } from "@std/fmt/colors";
+import { brightRed, cyan, dim, gray, green, red, yellow } from "@std/fmt/colors";
 
 export const symbols = {
 	retry: gray("\u21bb"),
 	warn: cyan("\u26a0"),
 	success: green("\u2714"),
 	forbid: red("\u2298"),
-	error: red("\u2716"),
+	error: brightRed("\u2716"),
 	info: yellow("\u{1f6c8}"),
 } as const;
 
