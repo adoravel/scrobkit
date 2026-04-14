@@ -2,7 +2,9 @@ import { type Config } from "~/lib/config.ts";
 import { countScrobblesInRange, scrobble, ScrobblePayload, ScrobbleResult } from "~/api/lastfm.ts";
 import { AppError, describe } from "~/lib/errors.ts";
 import { sleep, withRetryR } from "~/utils/retry.ts";
-import { Result } from "~/lib/result.ts";
+import { Ok, Result } from "~/lib/result.ts";
+import { symbols } from "~/cli/formatter.ts";
+import { dim, yellow } from "@std/fmt/colors";
 
 const DAILY_SCROBBLE_LIMIT: number = 2880;
 
@@ -26,7 +28,6 @@ export interface PipelineSummary {
 	readonly accepted: number;
 	readonly ignored: number;
 	readonly failed: number;
-	readonly skipped: number;
 }
 
 /**
@@ -103,25 +104,67 @@ export function isRetryable(error: unknown): boolean {
 	return false;
 }
 
+export function reportPipelineProgress(
+	summary: PipelineSummary,
+	dryRun: boolean,
+	current: number,
+	total: number,
+	meta: PipelineTrackMeta,
+	status: PipelineProgressStatus,
+	detail?: string,
+) {
+	const prefix = dryRun ? "  \u{1F6E0} 𝘥𝘳𝘺 𝘳𝘶𝘯  " : "  ";
+
+	const track = yellow(`"${meta.artist} - ${meta.title}"`);
+	const progress = prefix + dim(`[${current}/${total}]`);
+
+	switch (status) {
+		case "ok":
+			console.log(`${progress} ${symbols.success} ${track}`);
+			break;
+		case "ignored":
+			console.warn(`${progress} ${symbols.forbid} Ignored by Last.fm: ${track}`);
+			break;
+		case "failed":
+			console.error(
+				`${progress} ${symbols.error} Failed: ${track}\n    → ${dim(detail ?? "(empty string)")}`,
+			);
+			break;
+	}
+
+	if (current !== total) return;
+
+	if (dryRun) {
+		console.log("\nNo changes were made to the file.");
+	} else if (summary.failed === 0) {
+		console.log(`\n✓ All scrobbles were successfully submitted.`);
+	} else {
+		console.warn(`\n⚠ Finished with errors.`);
+	}
+}
+
 export async function runPipeline<TContext>(
 	pending: readonly PendingEntry<TContext>[],
 	opts: PipelineOptions<TContext>,
-	onProgress: (
+	$onProgress: (
+		this: PipelineSummary,
 		current: number,
 		total: number,
 		meta: PipelineTrackMeta,
 		status: PipelineProgressStatus,
 		detail?: string,
-	) => void,
+	) => void = function (current, total, meta, status, detail) {
+		reportPipelineProgress(this, opts.dryRun || false, current, total, meta, status, detail);
+	},
 ): Promise<PipelineSummary> {
 	const summary = {
 		total: pending.length,
 		accepted: 0,
 		ignored: 0,
 		failed: 0,
-		skipped: 0,
 	};
 
+	const onProgress = $onProgress.bind(summary);
 	const delay = opts.delayMs ?? 100;
 
 	for (const [i, entry] of pending.entries()) {
@@ -140,7 +183,9 @@ export async function runPipeline<TContext>(
 					baseDelayMs: 500,
 					retryIf: isRetryable,
 					onRetry: (attempt, delayMs) => {
-						console.error(`  \u21BB retry ${attempt} for "${meta.title}" in ${delayMs}ms...`);
+						console.error(
+							`  ${symbols.retry} retry ${dim(`${attempt}`)} for ${yellow(meta.title)} in ${dim(`${delayMs}ms`)}...`,
+						);
 					},
 				},
 			);
@@ -148,7 +193,7 @@ export async function runPipeline<TContext>(
 			if (result.ignored) {
 				summary.ignored += result.ignored;
 				onProgress(i + 1, pending.length, meta, "ignored");
-			} else {
+			} else if (result.accepted) {
 				summary.accepted += result.accepted;
 				onProgress(i + 1, pending.length, meta, "ok");
 			}
@@ -156,7 +201,9 @@ export async function runPipeline<TContext>(
 			if (opts.commitSuccess) {
 				const commitResult = await opts.commitSuccess(context);
 				if (!commitResult.ok) {
-					console.error(`  \u26a0 failed to persist state for "${meta.title}": ${describe(commitResult.error)}`);
+					console.error(
+						`  ${symbols.warn} failed to persist state for ${yellow(meta.title)}: ${dim(describe(commitResult.error))}`,
+					);
 				}
 			}
 		} catch (e) {
