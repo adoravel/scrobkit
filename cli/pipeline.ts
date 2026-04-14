@@ -1,41 +1,67 @@
 import { type Config } from "~/lib/config.ts";
 import { countScrobblesInRange, scrobble, ScrobblePayload, ScrobbleResult } from "~/api/lastfm.ts";
-import { CsvDocument, DocumentTrack, markSkipped } from "~/lib/csv.ts";
 import { AppError, describe } from "~/lib/errors.ts";
 import { sleep, withRetryR } from "~/utils/retry.ts";
+import { Result } from "~/lib/result.ts";
 
 const DAILY_SCROBBLE_LIMIT: number = 2880;
 
-export interface PipelineOptions {
-	config: Omit<Required<Config>, "password">;
-	sessionKey: string;
-	dryRun?: boolean;
-	delayMs?: number;
+export interface PipelineTrackMeta {
+	readonly artist: string;
+	readonly album: string;
+	readonly title: string;
+	readonly date: string;
+}
+
+export interface PipelineOptions<TContext = void> {
+	readonly config: Omit<Required<Config>, "password">;
+	readonly sessionKey: string;
+	readonly dryRun?: boolean;
+	readonly delayMs?: number;
+
+	/**
+	 * optional callback invoked after a track is successfully scrobbled.
+	 * use this to commit state changes (e.g. marking a document line, appending a log).
+	 */
+	readonly commitSuccess?: (context: TContext) => Promise<Result<unknown, AppError>>;
 }
 
 export interface PipelineSummary {
-	total: number;
-	accepted: number;
-	ignored: number;
-	failed: number;
-	skipped: number;
+	readonly total: number;
+	readonly accepted: number;
+	readonly ignored: number;
+	readonly failed: number;
+	readonly skipped: number;
 }
 
-export interface PendingEntry {
-	track: DocumentTrack;
-	index: number;
-	payload: ScrobblePayload;
+/**
+ * representation of a track waiting to be scrobbled.
+ *
+ * @template TContext format-specific state needed to commit the scrobble
+ */
+export interface PendingEntry<TContext = void> {
+	readonly meta: PipelineTrackMeta;
+	readonly payload: ScrobblePayload;
+	readonly context: TContext;
 }
 
 export interface LimitCheckResult {
-	scrobblesToday: number;
-	remaining: number;
-	importCount: number;
-	wouldExceed: boolean;
-	excess: number;
+	readonly scrobblesToday: number;
+	readonly remaining: number;
+	readonly importCount: number;
+	readonly wouldExceed: boolean;
+	readonly excess: number;
 
 	/** true when the scrobble count could not be fetched (e.g. private account) */
-	countUnavailable: boolean;
+	readonly countUnavailable: boolean;
+}
+
+export type PipelineProgressStatus = "ok" | "ignored" | "failed";
+
+function getUtcMidnightTimestamp(): number {
+	const now = Date.now();
+	const msSinceMidnight = now % 864e5; // 24 * 60 * 60 * 1000
+	return Math.floor((now - msSinceMidnight) / 1000);
 }
 
 export async function checkDailyLimit(
@@ -43,14 +69,8 @@ export async function checkDailyLimit(
 	username: string,
 	importCount: number,
 ): Promise<LimitCheckResult> {
-	const begin = Math.floor(
-		Date.UTC(
-			new Date().getUTCFullYear(),
-			new Date().getUTCMonth(),
-			new Date().getUTCDate(),
-		) / 1000,
-	);
-	const now = Math.floor(Date.now() / 1e3);
+	const begin = getUtcMidnightTimestamp();
+	const now = Math.floor(Date.now() / 1000);
 
 	const result = await countScrobblesInRange(apiKey, username, begin, now);
 	if (!result.ok) {
@@ -65,10 +85,7 @@ export async function checkDailyLimit(
 	}
 
 	const scrobblesToday = result.value;
-	const remaining = Math.max(
-		0,
-		DAILY_SCROBBLE_LIMIT - scrobblesToday,
-	);
+	const remaining = Math.max(0, DAILY_SCROBBLE_LIMIT - scrobblesToday);
 	const wouldExceed = importCount > remaining;
 	const excess = wouldExceed ? importCount - remaining : 0;
 
@@ -92,19 +109,18 @@ export function isRetryable(error: unknown): boolean {
 	return false;
 }
 
-export async function runPipeline(
-	pending: PendingEntry[],
-	file: CsvDocument,
-	opts: PipelineOptions,
+export async function runPipeline<TContext>(
+	pending: readonly PendingEntry<TContext>[],
+	opts: PipelineOptions<TContext>,
 	onProgress: (
 		current: number,
 		total: number,
-		track: DocumentTrack,
-		result: "ok" | "ignored" | "failed",
+		meta: PipelineTrackMeta,
+		status: PipelineProgressStatus,
 		detail?: string,
 	) => void,
 ): Promise<PipelineSummary> {
-	const summary: PipelineSummary = {
+	const summary = {
 		total: pending.length,
 		accepted: 0,
 		ignored: 0,
@@ -113,13 +129,12 @@ export async function runPipeline(
 	};
 
 	const delay = opts.delayMs ?? 100;
-	let document = file;
 
 	for (const [i, entry] of pending.entries()) {
-		const { track, index, payload } = entry;
+		const { meta, context, payload } = entry;
 
 		if (opts.dryRun) {
-			summary.accepted++, onProgress(i + 1, pending.length, track, "ok");
+			summary.accepted++, onProgress(i + 1, pending.length, meta, "ok");
 			continue;
 		}
 
@@ -131,25 +146,28 @@ export async function runPipeline(
 					baseDelayMs: 500,
 					retryIf: isRetryable,
 					onRetry: (attempt, delayMs) => {
-						console.error(`  ↺ Retry ${attempt} for "${track.title}" in ${delayMs}ms...`);
+						console.error(`  \u21BB retry ${attempt} for "${meta.title}" in ${delayMs}ms...`);
 					},
 				},
 			);
 
 			if (result.ignored) {
 				summary.ignored += result.ignored;
-				onProgress(i + 1, pending.length, track, "ignored");
+				onProgress(i + 1, pending.length, meta, "ignored");
 			} else {
 				summary.accepted += result.accepted;
-				onProgress(i + 1, pending.length, track, "ok");
+				onProgress(i + 1, pending.length, meta, "ok");
 			}
 
-			const marked = markSkipped(document, index);
-			if (marked.ok) document = marked.value;
+			if (opts.commitSuccess) {
+				const commitResult = await opts.commitSuccess(context);
+				if (!commitResult.ok) {
+					console.error(`  \u26a0 failed to persist state for "${meta.title}": ${describe(commitResult.error)}`);
+				}
+			}
 		} catch (e) {
 			summary.failed++;
-			const msg = describe(e as AppError);
-			onProgress(i + 1, pending.length, track, "failed", msg);
+			onProgress(i + 1, pending.length, meta, "failed", describe(e as AppError));
 		}
 
 		if (i < pending.length - 1) await sleep(delay);
@@ -165,21 +183,4 @@ export async function runPipeline(
 export function generateTimestamps(count: number): number[] {
 	const begin = Math.floor(Date.now() / 1_000) - 1_200_960;
 	return Array.from({ length: count }, (_, i) => begin + (i + 1) * 30);
-}
-
-export function trackToPipelineEntry(
-	track: DocumentTrack,
-	index: number,
-	timestamp: number,
-): PendingEntry {
-	return {
-		track,
-		index,
-		payload: {
-			artist: track.artist,
-			album: track.album || undefined,
-			title: track.title,
-			timestamp,
-		},
-	};
 }

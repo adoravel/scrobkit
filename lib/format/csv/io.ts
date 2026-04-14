@@ -1,5 +1,5 @@
 import { Errors } from "~/lib/errors.ts";
-import { CSV_HEADER, CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
+import { CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
 import { parseTrack, serializeHeader, serializeTrack } from "~/lib/format/csv/codec.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 
