@@ -6,12 +6,7 @@ import { Result } from "~/lib/result.ts";
 
 const DAILY_SCROBBLE_LIMIT: number = 2880;
 
-export interface PipelineTrackMeta {
-	readonly artist: string;
-	readonly album: string;
-	readonly title: string;
-	readonly date: string;
-}
+export type PipelineTrackMeta = ScrobblePayload;
 
 export interface PipelineOptions<TContext = void> {
 	readonly config: Omit<Required<Config>, "password">;
@@ -41,7 +36,6 @@ export interface PipelineSummary {
  */
 export interface PendingEntry<TContext = void> {
 	readonly meta: PipelineTrackMeta;
-	readonly payload: ScrobblePayload;
 	readonly context: TContext;
 }
 
@@ -131,7 +125,7 @@ export async function runPipeline<TContext>(
 	const delay = opts.delayMs ?? 100;
 
 	for (const [i, entry] of pending.entries()) {
-		const { meta, context, payload } = entry;
+		const { meta, context } = entry;
 
 		if (opts.dryRun) {
 			summary.accepted++, onProgress(i + 1, pending.length, meta, "ok");
@@ -140,7 +134,7 @@ export async function runPipeline<TContext>(
 
 		try {
 			const result: ScrobbleResult = await withRetryR(
-				() => scrobble(opts.config.apiKey, opts.config.secret, opts.sessionKey, payload),
+				() => scrobble(opts.config.apiKey, opts.config.secret, opts.sessionKey, meta),
 				{
 					maxAttempts: 4,
 					baseDelayMs: 500,
