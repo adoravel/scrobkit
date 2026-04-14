@@ -58,7 +58,7 @@ function parseHeaderLine(line: string): Result<Partial<ScrobblerLogHeader>, Pars
 
 	switch (directive) {
 		case "AUDIOSCROBBLER":
-			if (value !== "1.1") {
+			if (value !== "1.1" && value !== "1.0") {
 				return Fail(Errors.scrobblerLog("unsupported_version", `version ${value} is unsupported`));
 			}
 			return Ok({ version: value as ScrobblerLogHeader["version"] });
