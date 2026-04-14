@@ -9,16 +9,16 @@ a minimal CLI toolkit for working with [last.fm] scrobbles
 - [x] csv import/export with skip directive and quoting
 - [x] persistent configuration format
 - [x] retry system with exponential backoff + jitter
-- [ ] cli command routing structure
-  - [ ] individual track scrobbling
-  - [ ] multipple album loop scrobbling
-  - [ ] csv scrobbling history i/o
-  - [ ] [.scrobbler.log] i/o (for [rockbox] and similar projects)
-- [ ] dry-run mode support
+- [x] cli command routing structure
+  - [x] csv scrobbling history i/o
+  - [x] [.scrobbler.log] i/o (for [rockbox] and similar projects)
+  - [x] format-agnostic architecture
+- [x] dry-run mode support
+- [x] command-line commands
+  - [x] individual track scrobbling
+  - [ ] multiple album loop scrobbling
 - [ ] scrobble correction using [musicbrainz] api and [lotus]
-- [ ] conflict detection & resolution (timestamp + duplicates)
 - [ ] export filtering (date ranges, artist/album filters)
-- [ ] structured summary report (per artist/album breakdown)
 
 [last.fm]: https://last.fm
 [musicbrainz]: https://musicbrainz.org/
