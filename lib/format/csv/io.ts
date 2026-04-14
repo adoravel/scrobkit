@@ -1,5 +1,5 @@
 import { Errors } from "~/lib/errors.ts";
-import { CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
+import { CSV_HEADER, CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
 import { parseTrack, serializeHeader, serializeTrack } from "~/lib/format/csv/codec.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 
@@ -16,13 +16,13 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 		return Fail(Errors.csv("parse_failed", e instanceof Error ? e.message : String(e), path));
 	}
 
-	const rawLines = raw.split("\n");
+	const data = raw.split("\n");
 
 	const pending: CsvDocument["pending"][number][] = [];
 	let skippedCount = 0;
 
-	for (let i = 1; i < rawLines.length; i++) {
-		const line = rawLines[i];
+	for (let i = +data[0]?.startsWith(serializeHeader()); i < data.length; i++) {
+		const line = data[i];
 
 		if (!line.trim()) continue;
 		if (line.startsWith(SKIP_PREFIX)) {
@@ -36,7 +36,7 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 		pending.push({ track: parsed.value, lineIndex: i });
 	}
 
-	return Ok({ path, rawLines, pending, skippedCount });
+	return Ok({ path, rawLines: data, pending, skippedCount });
 }
 
 /**
