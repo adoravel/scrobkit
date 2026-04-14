@@ -1,3 +1,5 @@
+import { ScrobblerLogError, ScrobblerLogErrorReason } from "~/lib/format/scrobbler-log/error.ts";
+
 export type AppError =
 	| LastFmError
 	| MusicBrainzError
@@ -5,7 +7,8 @@ export type AppError =
 	| CsvError
 	| AuthError
 	| RateLimitError
-	| NetworkError;
+	| NetworkError
+	| ScrobblerLogError;
 
 export type LastFmErrorCode =
 	| 2 // unavailable service
@@ -22,11 +25,11 @@ export type LastFmErrorCode =
 	| 26 // suspended api key
 	| 29; // rate limit exceeded
 
-interface BaseError<Kind> {
+export interface BaseError<Kind> {
 	readonly kind: Kind;
 }
 
-interface TaggedError<Kind, Code> extends BaseError<Kind> {
+export interface TaggedError<Kind, Code> extends BaseError<Kind> {
 	readonly tag: Code;
 }
 
@@ -83,6 +86,12 @@ export const Errors = {
 	rateLimit: (retryAfterMs?: number): RateLimitError => ({ kind: "rate_limit", retryAfterMs }),
 
 	network: (message: string, status?: number): NetworkError => ({ kind: "network", message, tag: status }),
+
+	scrobblerLog: (tag: ScrobblerLogErrorReason, message: string): ScrobblerLogError => ({
+		kind: "scrobbler_log",
+		tag,
+		message,
+	}),
 } as const;
 
 export function describe(e: AppError): string {
@@ -101,5 +110,7 @@ export function describe(e: AppError): string {
 			return e.retryAfterMs ? `Rate limited. Retry after ${e.retryAfterMs}ms` : "Rate limited";
 		case "network":
 			return e.tag ? `Network error ${e.tag}: ${e.message}` : `Network error: ${e.message}`;
+		case "scrobbler_log":
+			return `Scrobbler Log error (${e.tag}): ${e.message}`;
 	}
 }
