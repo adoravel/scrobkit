@@ -6,6 +6,7 @@ export interface Config {
 	apiKey: string;
 	secret: string;
 	username?: string;
+	sessionKey?: string;
 	password?: string;
 }
 
