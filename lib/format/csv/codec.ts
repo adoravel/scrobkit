@@ -1,6 +1,5 @@
 import { Errors } from "~/lib/errors.ts";
-import { CSV_HEADER } from "~/lib/format/csv/mod.ts";
-import { DocumentTrack } from "~/lib/csv.ts";
+import { CSV_HEADER, type DocumentTrack } from "~/lib/format/csv/mod.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 
 type ParseError = ReturnType<typeof Errors.csv>;
@@ -56,6 +55,10 @@ export function parseTrack(
 	lineIndex: number,
 	path: string,
 ): Result<DocumentTrack, ParseError> {
+	if (line === serializeHeader()) {
+		return Fail(Errors.csv("invalid_columns", "header row", path));
+	}
+
 	const fields = split(line);
 
 	if (fields.length < 3) {
@@ -66,10 +69,6 @@ export function parseTrack(
 				path,
 			),
 		);
-	}
-
-	if (fields[0].toLowerCase() === "artist") {
-		return Fail(Errors.csv("invalid_columns", "header row", path));
 	}
 
 	return Ok({

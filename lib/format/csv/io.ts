@@ -1,8 +1,7 @@
 import { Errors } from "~/lib/errors.ts";
-import { CsvDocument, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
+import { CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
 import { parseTrack, serializeHeader, serializeTrack } from "~/lib/format/csv/codec.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
-import { DocumentTrack } from "~/lib/csv.ts";
 
 type IOError = ReturnType<typeof Errors.csv>;
 
@@ -22,7 +21,7 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 	const pending: CsvDocument["pending"][number][] = [];
 	let skippedCount = 0;
 
-	for (let i = 0; i < rawLines.length; i++) {
+	for (let i = 1; i < rawLines.length; i++) {
 		const line = rawLines[i];
 
 		if (!line.trim()) continue;
@@ -47,19 +46,19 @@ export async function markSkipped(
 	doc: CsvDocument,
 	index: number,
 ): Promise<Result<CsvDocument, IOError>> {
-	const line = doc.rawLines[index];
+	const content = doc.rawLines[index];
 
-	if (line === undefined) {
+	if (content === undefined) {
 		return Fail(Errors.csv("write_failed", `line ${index} out of bounds`, doc.path));
 	}
 
-	if (line.startsWith(SKIP_PREFIX)) {
+	if (content.startsWith(SKIP_PREFIX)) {
 		return Ok(doc);
 	}
 
 	// shallow copy <3
 	const body = [...doc.rawLines];
-	body[index] = `${SKIP_PREFIX} ${line}`;
+	body[index] = `${SKIP_PREFIX}${content}`;
 
 	try {
 		await Deno.writeTextFile(doc.path, body.join("\n"));
@@ -67,7 +66,7 @@ export async function markSkipped(
 		return Fail(Errors.csv("write_failed", e instanceof Error ? e.message : String(e), doc.path));
 	}
 
-	return Ok({ ...doc, rawLines: body });
+	return Ok({ ...doc, skippedCount: doc.skippedCount + 1, rawLines: body });
 }
 
 /**
