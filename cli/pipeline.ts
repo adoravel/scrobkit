@@ -33,6 +33,9 @@ export interface LimitCheckResult {
 	importCount: number;
 	wouldExceed: boolean;
 	excess: number;
+
+	/** true when the scrobble count could not be fetched (e.g. private account) */
+	countUnavailable: boolean;
 }
 
 export async function checkDailyLimit(
@@ -50,8 +53,18 @@ export async function checkDailyLimit(
 	const now = Math.floor(Date.now() / 1e3);
 
 	const result = await countScrobblesInRange(apiKey, username, begin, now);
-	const scrobblesToday = result.ok ? result.value : 0;
+	if (!result.ok) {
+		return {
+			scrobblesToday: 0,
+			remaining: DAILY_SCROBBLE_LIMIT,
+			importCount,
+			wouldExceed: false,
+			excess: 0,
+			countUnavailable: true,
+		};
+	}
 
+	const scrobblesToday = result.value;
 	const remaining = Math.max(
 		0,
 		DAILY_SCROBBLE_LIMIT - scrobblesToday,
@@ -59,7 +72,7 @@ export async function checkDailyLimit(
 	const wouldExceed = importCount > remaining;
 	const excess = wouldExceed ? importCount - remaining : 0;
 
-	return { scrobblesToday, remaining, importCount, wouldExceed, excess };
+	return { scrobblesToday, remaining, importCount, wouldExceed, excess, countUnavailable: false };
 }
 
 /**
@@ -100,14 +113,13 @@ export async function runPipeline(
 	};
 
 	const delay = opts.delayMs ?? 100;
-	let currentFile = file;
+	let document = file;
 
 	for (const [i, entry] of pending.entries()) {
 		const { track, index, payload } = entry;
 
 		if (opts.dryRun) {
-			summary.accepted++;
-			onProgress(i + 1, pending.length, track, "ok");
+			summary.accepted++, onProgress(i + 1, pending.length, track, "ok");
 			continue;
 		}
 
@@ -132,8 +144,8 @@ export async function runPipeline(
 				onProgress(i + 1, pending.length, track, "ok");
 			}
 
-			const marked = markSkipped(currentFile, index);
-			if (marked.ok) currentFile = marked.value;
+			const marked = markSkipped(document, index);
+			if (marked.ok) document = marked.value;
 		} catch (e) {
 			summary.failed++;
 			const msg = describe(e as AppError);
