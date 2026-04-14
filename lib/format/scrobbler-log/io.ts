@@ -22,12 +22,12 @@ function withHeaderIfNeeded(
 	header: ScrobblerLogHeader,
 	line: string,
 	fileExists: (p: string) => boolean,
-): string {
+): { body: string; shouldAppend: boolean } {
 	if (!fileExists(path)) {
 		const headerLines = serializeHeader(header).join(NEWLINE);
-		return `${headerLines}${NEWLINE}${line}`;
+		return { body: `${headerLines}${NEWLINE}${line}`, shouldAppend: false };
 	}
-	return line;
+	return { body: line, shouldAppend: true };
 }
 
 export async function readScrobblerLog(input: string): Promise<Result<ScrobblerLogPayload, IOError>> {
@@ -76,7 +76,7 @@ export async function appendTrack(
 	const line = serializeTrack(track) + NEWLINE;
 
 	try {
-		const body = withHeaderIfNeeded(path, header, line, (p) => {
+		const { body, shouldAppend: append } = withHeaderIfNeeded(path, header, line, (p) => {
 			try {
 				Deno.statSync(p);
 				return true;
@@ -86,7 +86,7 @@ export async function appendTrack(
 			}
 		});
 
-		await Deno.writeTextFile(path, body, { append: false });
+		await Deno.writeTextFile(path, body, { append });
 		return Ok(undefined);
 	} catch (e) {
 		return Fail(Errors.scrobblerLog("write_failed", e instanceof Error ? e.message : String(e)));
