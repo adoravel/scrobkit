@@ -1,7 +1,7 @@
 import { parseArgs } from "@std/cli";
 import { exists } from "@std/fs";
 import { requireBaseConfig } from "~/cli/bootstrap.ts";
-import { AppError, Errors } from "~/lib/errors.ts";
+import { AppError, describe, Errors } from "~/lib/errors.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 import { ensureSession } from "~/cli/session.ts";
 import { runCsvPipeline } from "~/cli/csv-runner.ts";
@@ -64,6 +64,7 @@ export async function executeImportCommand(args: string[] = Deno.args): Promise<
 	} catch (e) {
 		log.error("Import failed unexpectedly.");
 		if (e instanceof Error) log.error(e.message);
+		else log.error(describe(e as AppError));
 		Deno.exit(1);
 	}
 

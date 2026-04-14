@@ -4,6 +4,7 @@ import { executeImportCommand } from "~/commands/import.ts";
 import { parseArgs } from "@std/cli";
 import { log } from "~/cli/formatter.ts";
 import { dim } from "@std/fmt/colors";
+import { executeExportCommand } from "~/commands/export.ts";
 
 const HELP_TEXT = `
 scrobkit - A minimal CLI toolkit for working with Last.fm scrobbles
@@ -12,6 +13,7 @@ Usage: scrobkit <command> [options]
 
 Commands:
   import     Import scrobbles from a CSV document
+  export     Export your scrobble history to a CSV file
 
 Run 'scrobkit <command> --help' for more information on a specific command.
 `;
@@ -20,6 +22,7 @@ type CommandFn = (args: string[]) => Promise<Result<void, AppError>>;
 
 const commands: Record<string, CommandFn> = {
 	import: executeImportCommand,
+	export: executeExportCommand,
 };
 
 async function main($: string[] = Deno.args) {

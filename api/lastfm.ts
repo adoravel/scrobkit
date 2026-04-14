@@ -1,6 +1,7 @@
 import { crypto } from "@std/crypto";
 import { AuthError, Errors, type LastFmError, type NetworkError } from "~/lib/errors.ts";
 import { Fail, Ok, Result as $Result } from "~/lib/result.ts";
+import { withRetryR } from "~/utils/retry.ts";
 
 type Result<T> = $Result<T, LastFmError | AuthError | NetworkError>;
 
@@ -284,4 +285,25 @@ export async function verifySession(
 	return Ok(undefined);
 }
 
-export { type Result as LastFmResult };
+export interface FetchAllOptions {
+	readonly limit?: number;
+	readonly from?: number;
+	readonly to?: number;
+}
+
+export async function* getAllRecentTracks(
+	apiKey: string,
+	username: string,
+	options: FetchAllOptions = {},
+): AsyncGenerator<RecentTrack[], void, unknown> {
+	const limit = options.limit ?? 200;
+	let page = 1, totalPages = 1;
+
+	while (page <= totalPages) {
+		const result = await withRetryR(() => getRecentTracks(apiKey, username, page, { ...options, limit }));
+
+		totalPages = result.totalPages;
+		yield result.tracks;
+		page = result.page + 1;
+	}
+}
