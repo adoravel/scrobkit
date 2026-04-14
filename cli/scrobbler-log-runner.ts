@@ -1,6 +1,8 @@
 import { PendingEntry, PipelineOptions, PipelineSummary, resolveTimestamp, runPipeline } from "~/cli/pipeline.ts";
 import { ScrobblerLogTrack } from "~/lib/format/scrobbler-log/mod.ts";
 import { deleteLog, readScrobblerLog } from "~/lib/format/scrobbler-log/io.ts";
+import { symbols } from "~/cli/formatter.ts";
+import { dim } from "@std/fmt/colors";
 
 type ScrobblerLogContext = Record<PropertyKey, never>;
 
@@ -23,7 +25,15 @@ export async function runScrobblerLogPipeline(
 	const log = await readScrobblerLog(path);
 	if (!log.ok) throw new Error(log.error.message);
 
-	const pending = log.value.tracks.map(toPendingEntry);
+	const tracks = log.value.tracks.filter((track) => {
+		if (track.rating === "S") {
+			console.warn(`${symbols.forbid} Ignored by .scrobbler.log: ${dim(`"${track.artist} - ${track.title}"`)}`);
+			return false;
+		}
+		return true;
+	});
+
+	const pending = tracks.map(toPendingEntry);
 	const summary = await runPipeline<ScrobblerLogContext>(pending, { ...opts });
 
 	if (summary.failed === 0 && !opts.dryRun) {
