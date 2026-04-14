@@ -19,5 +19,12 @@
 			"tags": ["recommended"],
 			"exclude": ["no-explicit-any"]
 		}
+	},
+	"test": {
+		"permissions": {
+			"read": true,
+			"write": true
+		},
+		"include": ["tests/io/*.ts", "tests/codec/*.ts"]
 	}
 }
