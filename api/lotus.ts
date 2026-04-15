@@ -21,7 +21,7 @@ const lotus = {
 };
 
 export function normaliseArtistMetadata(rawArtist: string) {
-	const separators = /(&|feat\.?|ft\.?|and|,)/i;
+	const separators = /(&|feat\.?|ft\.?|,)/i;
 	const base = rawArtist.split(separators).map((x) => x.trim()).filter((y) => y && !y.match(separators));
 
 	let artist: string | undefined = base.join(";");
