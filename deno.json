@@ -27,6 +27,6 @@
 			"read": true,
 			"write": true
 		},
-		"include": ["tests/io/*.ts", "tests/codec/*.ts"]
+		"include": ["tests/io/*.ts", "tests/codec/*.ts", "tests/*.ts"]
 	}
 }

@@ -17,8 +17,8 @@ export async function ensureSession(config: Config): Promise<Result<SessionConfi
 		log.warn("Session key is invalid or expired. Re-authenticating...");
 	}
 
-	const username = ask("  What's your Last.fm username? ");
-	const password = ask(SECRET_WARNING + "\n\n  What about your account password? ", true);
+	const username = ask("  What's your Last.fm username?");
+	const password = ask(SECRET_WARNING + "\n\n  What about your account password?", true);
 
 	log.info("Authenticating...");
 	const auth = await authenticate(config.apiKey, config.secret, username, password);
