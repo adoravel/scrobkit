@@ -9,7 +9,7 @@ type BootstrapConfig = Omit<Required<Config>, "password" | "username">;
 
 export const SECRET_WARNING = italic(dim(
 	"\n\nYour Last.fm credentials are used only to authenticate with Last.fm services. " +
-		"They are sent directly to Last.fm over a secure connection and are not stored locally after authentication.",
+		"They are sent directly to Last.fm over a secure connection and are not stored locally after authentication.\n\n",
 ));
 
 export async function requireBaseConfig(): Promise<Result<BootstrapConfig, AppError>> {
@@ -26,7 +26,8 @@ export async function requireBaseConfig(): Promise<Result<BootstrapConfig, AppEr
 	log.warn("No API credentials found. Let's set up scrobkit :3\n");
 
 	const apiKey = ask("  What is your Last.fm API key?");
-	const sharedSecret = ask(SECRET_WARNING + "\n\n  What about your key's shared secret, eh?", true);
+	console.log(SECRET_WARNING);
+	const sharedSecret = ask("  What about your key's shared secret, eh?", true);
 
 	const saved = await updateConfig({ apiKey, secret: sharedSecret });
 	if (!saved.ok) {

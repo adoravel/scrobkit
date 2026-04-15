@@ -18,7 +18,8 @@ export async function ensureSession(config: Config): Promise<Result<SessionConfi
 	}
 
 	const username = ask("  What's your Last.fm username?");
-	const password = ask(SECRET_WARNING + "\n\n  What about your account password?", true);
+	console.log(SECRET_WARNING);
+	const password = ask("  What about your account password?", true);
 
 	log.info("Authenticating...");
 	const auth = await authenticate(config.apiKey, config.secret, username, password);

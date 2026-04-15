@@ -85,7 +85,7 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 				continue;
 			}
 
-			log.success(`  ${dim("done")}  ${cyan(metadata.artist)} — ${metadata.title} ${dim("@ " + timestamp)}`);
+			log.success(`  ${dim("done")}   ${cyan(metadata.artist)} — ${metadata.title} ${dim("@ " + timestamp)}`);
 		}
 		sleep(100);
 	}
