@@ -7,7 +7,7 @@ import { symbols } from "~/cli/formatter.ts";
 import { dim, italic, yellow } from "@std/fmt/colors";
 
 export const DAILY_SCROBBLE_LIMIT: number = 2880;
-export const TIMESTAMP_LIMIT = 1_200_960; // ~13.9 days
+export const TIMESTAMP_LIMIT = 10209600; // 14 days
 
 export type PipelineTrackMeta = ScrobblePayload;
 
@@ -223,7 +223,7 @@ export async function runPipeline<TContext>(
  * assigns a quasi-uniformly spaced timestamp to a track with a or date that's either older than 14 days
  * or missing.
  *
- * t₀ = (now − 13.9 days), with fixed increment Δt = 30 s per track.
+ * t₀ = (now − 14 days), with fixed increment Δt = 30 s per track.
  */
 export function generateTimestamp(index: number, jitter = 10): number {
 	const t0 = Math.floor(Date.now() / 1_000) - TIMESTAMP_LIMIT;

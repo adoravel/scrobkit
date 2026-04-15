@@ -8,7 +8,7 @@ import { AppError } from "~/lib/errors.ts";
 import { ensureBrowserSession } from "~/browser/session.ts";
 import { normaliseArtistMetadata } from "~/api/lotus.ts";
 import { deleteScrobble } from "~/browser/lastfm.ts";
-import { sleep } from "~/utils/retry.ts";
+import { sleep, withRetry } from "~/utils/retry.ts";
 import { cyan, green, italic, red } from "@std/fmt/colors";
 import { TIMESTAMP_LIMIT } from "~/cli/pipeline.ts";
 
@@ -38,7 +38,7 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 	outer: for await (const page of getAllRecentTracks(session.value.apiKey, session.value.username, { limit: 50 })) {
 		for (const track of page) {
 			if (!track.timestamp) continue;
-			if (Number(track.timestamp) < CORRECTION_CUTOFF) break outer;
+			if (Number(track.timestamp) <= CORRECTION_CUTOFF) break outer;
 
 			const metadata = { artist: normaliseArtistMetadata(track.artist), title: track.title, album: track.album };
 
@@ -64,21 +64,25 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 
 			if (flags["dry-run"]) continue;
 
-			const deletion = await deleteScrobble(browser, {
-				artist: track.artist,
-				timestamp: track.timestamp,
-				track: track.title,
-			});
+			const deletion = await withRetry(() =>
+				deleteScrobble(browser, {
+					artist: track.artist,
+					timestamp: track.timestamp!,
+					track: track.title,
+				})
+			);
 
 			if (!deletion.ok) {
 				log.error(`      ${dim("fail")} deletion </3: ${deletion.error.message}`);
 				continue;
 			}
 
-			const add = await scrobble(session.value.apiKey, session.value.secret, session.value.sessionKey, {
-				...metadata,
-				timestamp: track.timestamp,
-			});
+			const add = await withRetry(() =>
+				scrobble(session.value.apiKey, session.value.secret, session.value.sessionKey, {
+					...metadata,
+					timestamp: track.timestamp!,
+				})
+			);
 
 			if (!add.ok || !add.value.accepted) {
 				log.error(`      ${dim("fail")} resubmission qwq`);
