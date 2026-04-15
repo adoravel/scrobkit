@@ -12,8 +12,6 @@ import { sleep, withRetry } from "~/utils/retry.ts";
 import { cyan, green, italic, red } from "@std/fmt/colors";
 import { TIMESTAMP_LIMIT } from "~/cli/pipeline.ts";
 
-const CORRECTION_CUTOFF = Math.floor(Date.now() / 1000) - TIMESTAMP_LIMIT;
-
 export async function executeTidyCommand(args: string[]): Promise<Result<void, AppError>> {
 	const flags = parseArgs(args, {
 		boolean: ["dry-run"],
@@ -33,24 +31,30 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 	log.info(`${prefix}Scanning 14-day history for metadata issues...`);
 
 	let skipCount = 0;
-	const MAX_SHOWN_SKIPS = 3;
+	const maxShownSkips = 3;
+	const cutoff = Math.floor(Date.now() / 1000) - TIMESTAMP_LIMIT;
 
-	outer: for await (const page of getAllRecentTracks(session.value.apiKey, session.value.username, { limit: 50 })) {
+	outer: for await (const page of getAllRecentTracks(session.value.apiKey, session.value.username)) {
 		for (const track of page) {
-			if (!track.timestamp) continue;
-			if (Number(track.timestamp) <= CORRECTION_CUTOFF) break outer;
+			if (!track.timestamp || isNaN(track.timestamp)) continue;
+			if (track.timestamp <= cutoff) {
+				log.info(
+					`  ${dim("limit")}  Stopped at 14-day mark (${new Date(track.timestamp * 1000).toLocaleDateString()})`,
+				);
+				break outer;
+			}
 
 			const metadata = { artist: normaliseArtistMetadata(track.artist), title: track.title, album: track.album };
 
 			if (metadata.artist.toLowerCase() === track.artist.toLowerCase()) {
-				if (skipCount++ <= MAX_SHOWN_SKIPS) {
+				if (skipCount++ <= maxShownSkips) {
 					log.info(`  ${dim("skip")}  ${dim(track.artist + " — " + track.title)}`);
 				}
 				continue;
 			}
 
-			if (skipCount > MAX_SHOWN_SKIPS) {
-				log.info(`  ${dim("...")}   ${dim(`skipped ${skipCount - MAX_SHOWN_SKIPS} more tracks`)}`);
+			if (skipCount > maxShownSkips) {
+				log.info(`  ${dim("...")}   ${dim(`skipped ${skipCount - maxShownSkips} more tracks`)}`);
 			}
 
 			skipCount = 0;

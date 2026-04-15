@@ -7,7 +7,7 @@ import { symbols } from "~/cli/formatter.ts";
 import { dim, italic, yellow } from "@std/fmt/colors";
 
 export const DAILY_SCROBBLE_LIMIT: number = 2880;
-export const TIMESTAMP_LIMIT = 10209600; // 14 days
+export const TIMESTAMP_LIMIT = 1209600; // 14 days
 
 export type PipelineTrackMeta = ScrobblePayload;
 
