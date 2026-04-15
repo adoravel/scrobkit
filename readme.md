@@ -18,8 +18,8 @@ a minimal CLI toolkit for working with [last.fm] scrobbles
   - [x] individual track scrobbling
   - [ ] multiple album loop scrobbling
 - [x] scrobble correction 
-  - using [lotus]
-  - using [musicbrainz] api
+  - [x] using [lotus]
+  - [ ] using [musicbrainz] api
 - [x] export filtering (date ranges, artist/album filters)
 
 [last.fm]: https://last.fm
