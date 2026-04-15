@@ -61,7 +61,7 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 			const timestamp = new Date(track.timestamp * 1000).toLocaleString();
 
 			log.warn(
-				`  ${dim("tidy")}   ${red(track.artist)} → ${green(metadata.artist)} ${
+				`   ${dim("tidy")}  ${red(track.artist)} → ${green(metadata.artist)} ${
 					dim(`(${track.title}) ${dim("@ " + timestamp)}`)
 				}`,
 			);
@@ -93,7 +93,7 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 				continue;
 			}
 
-			log.success(`  ${dim("done")}   ${cyan(metadata.artist)} — ${metadata.title} ${dim("@ " + timestamp)}`);
+			log.success(`   ${dim("done")}  ${cyan(metadata.artist)} — ${metadata.title} ${dim("@ " + timestamp)}`);
 		}
 		sleep(100);
 	}
