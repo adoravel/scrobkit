@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "jsr:@std/assert@1.0.19";
+import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { loadCsvDocument, markSkipped, saveCsvDocument } from "~/lib/format/csv/io.ts";
 import { type DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
