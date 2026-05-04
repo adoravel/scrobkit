@@ -20,6 +20,14 @@
 		"lineWidth": 120,
 		"exclude": ["./third-party"]
 	},
+	"permissions": {
+		"default": {
+			"env": true,
+			"net": true,
+			"read": true,
+			"write": true
+		}
+	},
 	"lint": {
 		"rules": {
 			"tags": ["recommended"],
