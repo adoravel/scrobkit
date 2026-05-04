@@ -23,11 +23,13 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 
 	const session = await ensureSession(config.value);
 	if (!session.ok) return session;
+	
+	const isDryRun = flags["dry-run"];
+	
+	const browser = !isDryRun ? ensureBrowserSession(session.value) : null;
+	if (!browser && !isDryRun) return Ok(void 0);
 
-	const browser = ensureBrowserSession(session.value);
-	if (!browser) return Ok(void 0);
-
-	const prefix = flags["dry-run"] ? `  \u{1F6E0}  ${italic("dry run")}  ` : "  ";
+	const prefix = isDryRun ? `  \u{1F6E0}  ${italic("dry run")}  ` : "  ";
 	log.info(`${prefix}Scanning 14-day history for metadata issues...`);
 
 	let skipCount = 0;
@@ -66,8 +68,10 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 				}`,
 			);
 
-			if (flags["dry-run"]) continue;
-
+			if (isDryRun) continue;
+			
+			if (!browser) continue;
+			
 			const deletion = await withRetry(() =>
 				deleteScrobble(browser, {
 					artist: track.artist,
