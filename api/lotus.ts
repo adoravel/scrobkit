@@ -21,20 +21,15 @@ const lotus = {
 };
 
 export function normaliseArtistMetadata(rawArtist: string) {
-	const removeUnwantedTokens = (raw: string | string[], regex: RegExp) => 
-		typeof raw === 'string' ? raw.split(regex) : raw.join(" ").split(regex)
-		.map((s) => s.trim())
-		.filter(Boolean)
-		.filter((s) => !s.match(regex))
-	
-	const featTokens = /\s(&|feat\.?|ft\.?)\s/i;
-	const commaTokens = /(、|,\s)/i;
+	const removeUnwantedTokens = (raw: string, regex: RegExp): string =>
+		raw.split(regex)
+			.map((s) => s.trim())
+			.filter(Boolean)
+			.join(";");
 
-	const base = [featTokens, commaTokens].reduce((acc, regex) => {
-		return acc.flatMap((s) => removeUnwantedTokens(s, regex));
-	}, [rawArtist]);
+	const separators = /\s(?:&|feat\.?|ft\.?)\s|[\u3001]|\s*,\s*/i;
+	let artist = removeUnwantedTokens(rawArtist, separators);
 
-	let artist = base.join(";");
 	for (const [key, transform] of Object.entries(combinedArtists)) {
 		if (artist.toLowerCase().includes(key.toLowerCase())) {
 			const pattern = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");

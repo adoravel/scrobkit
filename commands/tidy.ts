@@ -23,9 +23,9 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 
 	const session = await ensureSession(config.value);
 	if (!session.ok) return session;
-	
+
 	const isDryRun = flags["dry-run"];
-	
+
 	const browser = !isDryRun ? ensureBrowserSession(session.value) : null;
 	if (!browser && !isDryRun) return Ok(void 0);
 
@@ -41,7 +41,7 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 			if (!track.timestamp || isNaN(track.timestamp)) continue;
 			if (track.timestamp <= cutoff) {
 				log.info(
-					`  ${dim("limit")}  Stopped at 14-day mark (${new Date(track.timestamp * 1000).toLocaleDateString()})`,
+					`  ${dim("limit")} Stopped at 14-day mark (${new Date(track.timestamp * 1000).toLocaleDateString()})`,
 				);
 				break outer;
 			}
@@ -69,9 +69,9 @@ export async function executeTidyCommand(args: string[]): Promise<Result<void, A
 			);
 
 			if (isDryRun) continue;
-			
+
 			if (!browser) continue;
-			
+
 			const deletion = await withRetry(() =>
 				deleteScrobble(browser, {
 					artist: track.artist,
