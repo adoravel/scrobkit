@@ -62,6 +62,7 @@ export interface RecentTracksPage {
 
 export interface ScrobblePayload {
 	artist: string;
+	albumArtist?: string;
 	album?: string;
 	title: string;
 	timestamp: number;
@@ -189,6 +190,10 @@ export async function scrobble(
 		const suffix = inputs.length > 1 ? `[${i}]` : "";
 
 		body[`artist${suffix}`] = s.artist;
+		// according to last.fm's documentation, the album artist should *only* be sent if it differs from the artist.
+		if (s.albumArtist && s.albumArtist !== s.artist) {
+			body[`albumArtist${suffix}`] = s.albumArtist;
+		}
 		body[`track${suffix}`] = s.title;
 		body[`timestamp${suffix}`] = s.timestamp;
 		if (s.album) {

@@ -2,12 +2,13 @@ export const SKIP_PREFIX = "#SKIP:";
 
 export interface DocumentTrack {
 	readonly artist: string;
+	readonly albumArtist?: string;
 	readonly album: string;
 	readonly title: string;
 	readonly date: string;
 }
 
-export const CSV_HEADER: readonly string[] = ["artist", "album", "title", "date"] as const;
+export const CSV_HEADER: readonly string[] = ["artist", "album_artist", "album", "title", "date"] as const;
 
 /**
  * immutable state representing a loaded csv document in memory

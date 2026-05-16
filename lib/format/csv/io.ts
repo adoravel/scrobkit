@@ -1,6 +1,6 @@
 import { Errors } from "~/lib/errors.ts";
 import { CsvDocument, DocumentTrack, SKIP_PREFIX } from "~/lib/format/csv/mod.ts";
-import { parseTrack, serializeHeader, serializeTrack } from "~/lib/format/csv/codec.ts";
+import { getColumnIndices, parseTrack, serializeHeader, serializeTrack } from "~/lib/format/csv/codec.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 
 type IOError = ReturnType<typeof Errors.csv>;
@@ -18,10 +18,15 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 
 	const data = raw.split("\n");
 
+	if (data.length == 0) {
+		return Fail(Errors.csv("parse_failed", "file is possibly blank or not properly formatted", path))
+	}
+
 	const pending: CsvDocument["pending"][number][] = [];
+	const header = getColumnIndices(data[0])
 	let skippedCount = 0;
 
-	for (let i = +data[0]?.startsWith(serializeHeader()); i < data.length; i++) {
+	for (let i = +header.ok; i < data.length; i++) {
 		const line = data[i];
 
 		if (!line.trim()) continue;
@@ -30,7 +35,7 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 			continue;
 		}
 
-		const parsed = parseTrack(line, i, path);
+		const parsed = parseTrack(line, i, path, header.ok ? header.value : undefined)
 		if (!parsed.ok) return parsed;
 
 		pending.push({ track: parsed.value, lineIndex: i });

@@ -54,6 +54,7 @@ export function parseTrack(
 	line: string,
 	lineIndex: number,
 	path: string,
+	header?: Record<string, number>,
 ): Result<DocumentTrack, ParseError> {
 	if (line === serializeHeader()) {
 		return Fail(Errors.csv("invalid_columns", "header row", path));
@@ -71,11 +72,21 @@ export function parseTrack(
 		);
 	}
 
+	if (!header) {
+		return Ok({
+			artist: unescape(fields[0] ?? ""),
+			album: unescape(fields[1] ?? ""),
+			title: unescape(fields[2] ?? ""),
+			date: unescape(fields[3] ?? ""),
+		});
+	}
+
 	return Ok({
-		artist: unescape(fields[0] ?? ""),
-		album: unescape(fields[1] ?? ""),
-		title: unescape(fields[2] ?? ""),
-		date: unescape(fields[3] ?? ""),
+		artist: unescape(fields[header["artist"]]),
+		albumArtist: unescape(fields[header["album_artist"]] ?? ""),
+		album: unescape(fields[header["album"]] ?? ""),
+		title: unescape(fields[header["title"]]),
+		date: unescape(fields[header["date"]] ?? ""),
 	});
 }
 
@@ -85,4 +96,32 @@ export function serializeTrack(track: DocumentTrack): string {
 
 export function serializeHeader(): string {
 	return CSV_HEADER.join(",");
+}
+
+export function getColumnIndices(line: string): Result<Record<string, number>, ParseError> {
+	const fields = split(line);
+	const returns: Record<string, number> = {};
+	const requiredFields = ["artist", "title"];
+
+	CSV_HEADER.forEach((currentValue: string) => {
+		for (let i = 0; i < fields.length; i++) {
+			const field = fields[i];
+
+			if (currentValue === field) {
+				returns[currentValue] = i;
+				break;
+			}
+		}
+	});
+
+	for (const required of requiredFields) {
+		if (!Object.keys(returns).includes(required)) {
+			return Fail(Errors.csv(
+				"required_header_fields_missing",
+				`expected at least ${requiredFields.length} header fields (${requiredFields.join(", ")})`,
+			));
+		}
+	}
+
+	return Ok(returns);
 }

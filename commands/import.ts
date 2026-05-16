@@ -16,9 +16,9 @@ Arguments:
   <path>                  Path to either a .scrobbler.log or .csv file.
 
 Options:
-  -n, --dry-run           Simulate the import without scrobbling or modifying the file
-  -s, --no-skip-marker    Don't mark any track as skipped after importing (doesn't touch the provided file in any way)
-  -h, --help              Show this help message
+  -n,  --dry-run          Simulate the import without scrobbling or modifying the file
+  -s,  --no-skip-marker   Don't mark any track as skipped after importing (doesn't touch the provided file in any way)
+  -h,  --help             Show this help message
 `;
 
 export async function executeImportCommand(args: string[] = Deno.args): Promise<Result<void, AppError>> {
