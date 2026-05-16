@@ -15,6 +15,7 @@ export interface PipelineOptions<TContext = void> {
 	readonly config: Omit<Required<Config>, "password">;
 	readonly dryRun?: boolean;
 	readonly delayMs?: number;
+	readonly noSkipMarker?: boolean;
 
 	/**
 	 * optional callback invoked after a track is successfully scrobbled.

@@ -13,22 +13,25 @@ const HELP_TEXT = `
 Usage: scrobkit import [options...] <path>
 
 Arguments:
-  <path>              Path to either a .scrobbler.log or .csv file.
+  <path>                  Path to either a .scrobbler.log or .csv file.
 
 Options:
-  -n, --dry-run       Simulate the import without scrobbling or modifying the file
-  -h, --help          Show this help message
+  -n, --dry-run           Simulate the import without scrobbling or modifying the file
+  -s, --no-skip-marker    Don't mark any track as skipped after importing (doesn't touch the provided file in any way)
+  -h, --help              Show this help message
 `;
 
 export async function executeImportCommand(args: string[] = Deno.args): Promise<Result<void, AppError>> {
 	const flags = parseArgs(args, {
-		boolean: ["dry-run", "help"],
+		boolean: ["dry-run", "help", "no-skip-marker"],
 		alias: {
 			n: "dry-run",
 			h: "help",
+			s: "no-skip-marker"
 		},
 		default: {
 			"dry-run": false,
+			"no-skip-marker": false
 		},
 	});
 
@@ -51,6 +54,7 @@ export async function executeImportCommand(args: string[] = Deno.args): Promise<
 	const opts: PipelineOptions = {
 		config: session.value,
 		dryRun: flags["dry-run"],
+		noSkipMarker: flags["no-skip-marker"]
 	};
 
 	try {
