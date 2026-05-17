@@ -53,11 +53,12 @@ export interface ConfigError extends TaggedError<"config", ConfigErrorReason> {
 
 export type CsvErrorReason =
 	| IOError
-	| "invalid_columns";
+	| "invalid_columns"
+	| "required_header_fields_missing";
 
 export interface CsvError extends TaggedError<"csv", CsvErrorReason> {
 	readonly message: string;
-	readonly path: string;
+	readonly path: string | undefined;
 }
 
 export interface AuthError extends BaseError<"auth"> {
@@ -79,7 +80,7 @@ export const Errors = {
 
 	config: (tag: ConfigErrorReason, message: string): ConfigError => ({ kind: "config", tag, message }),
 
-	csv: (tag: CsvErrorReason, message: string, path: string): CsvError => ({ kind: "csv", tag, message, path }),
+	csv: (tag: CsvErrorReason, message: string, path?: string | undefined): CsvError => ({ kind: "csv", tag, message, path }),
 
 	auth: (message: string): AuthError => ({ kind: "auth", message }),
 

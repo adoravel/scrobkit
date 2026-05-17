@@ -33,7 +33,7 @@ export async function runCsvPipeline(
 
 	return runPipeline<CsvContext>(pending, {
 		...opts,
-		commitSuccess: async ({ lineIndex }) => {
+		commitSuccess: opts.noSkipMarker ? async ({ lineIndex }) => {
 			const skip = await markSkipped(doc, lineIndex);
 			if (skip.ok) {
 				doc = skip.value;
@@ -43,6 +43,6 @@ export async function runCsvPipeline(
 				);
 			}
 			return skip;
-		},
+		} : void 0,
 	});
 }
