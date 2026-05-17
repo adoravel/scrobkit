@@ -1,11 +1,6 @@
-import { default as $romanisedArtists } from "~/third-party/lotus/romanised_artists.json" with { type: "json" };
+import { default as romanisedArtists } from "~/third-party/lotus/romanised_artists.json" with { type: "json" };
 import { default as artists } from "~/third-party/lotus/artist.json" with { type: "json" };
 import { default as combinedArtists } from "~/third-party/lotus/combined_artists.json" with { type: "json" };
-
-// overrides
-const romanisedArtists: Record<string, string> = { ...$romanisedArtists };
-romanisedArtists["かめりあ"] = "Camellia";
-romanisedArtists["ななひら"] = "Nanahira";
 
 function normalise(input: Record<string, string>): typeof lookup & ((key: string) => string) {
 	const lookup = Object.fromEntries(

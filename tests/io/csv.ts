@@ -9,7 +9,7 @@ Deno.test("CSV I/O: saveCsvDocument() and loadCsvDocument() roundtrip", async (t
 
 	const tracks: DocumentTrack[] = [
 		{ artist: "A", album: "B", title: "C", date: "D" },
-		{ artist: "E, F", album: "G", title: 'H "I"', date: "J" }, // Contains special chars
+		{ artist: "E, F", album: "G", title: 'H "I"', date: "J" },
 	];
 
 	await t.step("save creates file", async () => {
@@ -45,7 +45,7 @@ Deno.test("CSV I/O: markSkipped() updates line and saves", async (t) => {
 	await t.step("mark skipped returns updated doc", async () => {
 		const markResult = await markSkipped(doc, 1);
 		assert(markResult.ok);
-		assertEquals(markResult.value.rawLines[1], `${SKIP_PREFIX}A,B,C,D`);
+		assertEquals(markResult.value.rawLines[1], `${SKIP_PREFIX}A,,B,C,D`);
 		assertEquals(markResult.value.skippedCount, 1);
 	});
 

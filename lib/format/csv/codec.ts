@@ -58,11 +58,14 @@ export function parseTrack(
 	path: string,
 	header?: ColumnIndices,
 ): Result<DocumentTrack, ParseError> {
-	if (line === serializeHeader()) {
-		return Fail(Errors.csv("invalid_columns", "header row", path));
-	}
-
 	const fields = split(line);
+
+	const headers = getPossibleHeaders(fields);
+	for (const h of headers) {
+		if (h.join(",") === line) {
+			return Fail(Errors.csv("invalid_columns", "header row", path));
+		}
+	}
 
 	if (fields.length < 3) {
 		return Fail(
@@ -93,11 +96,22 @@ export function parseTrack(
 }
 
 export function serializeTrack(track: DocumentTrack): string {
-	return [track.artist, track.album, track.title, track.date].map(escape).join(",");
+	return [track.artist, track.albumArtist ?? "", track.album, track.title, track.date].map(escape).join(",");
 }
 
 export function serializeHeader(): string {
 	return columnFields.join(",");
+}
+
+function getPossibleHeaders(segments: string[]): (readonly string[])[] {
+	if (segments.length === 5) {
+		return [columnFields];
+	}
+	if (segments.length === 4) {
+		return [columnFields.filter((f) => f !== "album_artist"), columnFields.filter((f) => f !== "date")];
+	}
+
+	return [["artist", "album", "title"]];
 }
 
 export function getColumnIndices(line: string): Result<ColumnIndices, ParseError> {

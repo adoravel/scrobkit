@@ -27,11 +27,11 @@ Deno.test("CSV Codec: escape() wraps and escapes when necessary", () => {
 
 Deno.test("CSV Codec: serializeTrack() correctly formats a row", () => {
 	const track: DocumentTrack = { artist: "A", album: "B", title: "C", date: "D" };
-	assertEquals(serializeTrack(track), "A,B,C,D");
+	assertEquals(serializeTrack(track), "A,,B,C,D");
 });
 
 Deno.test("CSV Codec: serializeHeader() matches expected format", () => {
-	assertEquals(serializeHeader(), "artist,album,title,date");
+	assertEquals(serializeHeader(), "artist,album_artist,album,title,date");
 });
 
 Deno.test("CSV Codec: parseTrack() successfully parses a valid line", () => {
