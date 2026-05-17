@@ -1,8 +1,10 @@
 import { Errors } from "~/lib/errors.ts";
-import { CSV_HEADER, type DocumentTrack } from "~/lib/format/csv/mod.ts";
+import { columnFields, type DocumentTrack } from "~/lib/format/csv/mod.ts";
 import { Fail, Ok, Result } from "~/lib/result.ts";
 
 type ParseError = ReturnType<typeof Errors.csv>;
+
+type ColumnIndices = Record<(typeof columnFields)[number], number>;
 
 // https://www.rfc-editor.org/rfc/rfc4180.html
 export function split(line: string): string[] {
@@ -54,7 +56,7 @@ export function parseTrack(
 	line: string,
 	lineIndex: number,
 	path: string,
-	header?: Record<string, number>,
+	header?: ColumnIndices,
 ): Result<DocumentTrack, ParseError> {
 	if (line === serializeHeader()) {
 		return Fail(Errors.csv("invalid_columns", "header row", path));
@@ -82,11 +84,11 @@ export function parseTrack(
 	}
 
 	return Ok({
-		artist: unescape(fields[header["artist"]]),
-		albumArtist: unescape(fields[header["album_artist"]] ?? ""),
-		album: unescape(fields[header["album"]] ?? ""),
-		title: unescape(fields[header["title"]]),
-		date: unescape(fields[header["date"]] ?? ""),
+		artist: unescape(fields[header.artist]),
+		albumArtist: unescape(fields[header.album_artist] ?? ""),
+		album: unescape(fields[header.album] ?? ""),
+		title: unescape(fields[header.title]),
+		date: unescape(fields[header.date] ?? ""),
 	});
 }
 
@@ -95,20 +97,21 @@ export function serializeTrack(track: DocumentTrack): string {
 }
 
 export function serializeHeader(): string {
-	return CSV_HEADER.join(",");
+	return columnFields.join(",");
 }
 
-export function getColumnIndices(line: string): Result<Record<string, number>, ParseError> {
+export function getColumnIndices(line: string): Result<ColumnIndices, ParseError> {
 	const fields = split(line);
 	const returns: Record<string, number> = {};
+
 	const requiredFields = ["artist", "title"];
 
-	CSV_HEADER.forEach((currentValue: string) => {
+	columnFields.forEach((val) => {
 		for (let i = 0; i < fields.length; i++) {
 			const field = fields[i];
 
-			if (currentValue === field) {
-				returns[currentValue] = i;
+			if (val === field) {
+				returns[val] = i;
 				break;
 			}
 		}
@@ -123,5 +126,5 @@ export function getColumnIndices(line: string): Result<Record<string, number>, P
 		}
 	}
 
-	return Ok(returns);
+	return Ok(returns as ColumnIndices);
 }

@@ -27,11 +27,11 @@ export async function executeImportCommand(args: string[] = Deno.args): Promise<
 		alias: {
 			n: "dry-run",
 			h: "help",
-			s: "no-skip-marker"
+			s: "no-skip-marker",
 		},
 		default: {
 			"dry-run": false,
-			"no-skip-marker": false
+			"no-skip-marker": false,
 		},
 	});
 
@@ -54,7 +54,7 @@ export async function executeImportCommand(args: string[] = Deno.args): Promise<
 	const opts: PipelineOptions = {
 		config: session.value,
 		dryRun: flags["dry-run"],
-		noSkipMarker: flags["no-skip-marker"]
+		noSkipMarker: flags["no-skip-marker"],
 	};
 
 	try {

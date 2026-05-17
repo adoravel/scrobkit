@@ -19,11 +19,11 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 	const data = raw.split("\n");
 
 	if (data.length == 0) {
-		return Fail(Errors.csv("parse_failed", "file is possibly blank or not properly formatted", path))
+		return Fail(Errors.csv("parse_failed", "file is possibly blank or not properly formatted", path));
 	}
 
 	const pending: CsvDocument["pending"][number][] = [];
-	const header = getColumnIndices(data[0])
+	const header = getColumnIndices(data[0]);
 	let skippedCount = 0;
 
 	for (let i = +header.ok; i < data.length; i++) {
@@ -35,7 +35,7 @@ export async function loadCsvDocument(path: string): Promise<Result<CsvDocument,
 			continue;
 		}
 
-		const parsed = parseTrack(line, i, path, header.ok ? header.value : undefined)
+		const parsed = parseTrack(line, i, path, header.ok ? header.value : undefined);
 		if (!parsed.ok) return parsed;
 
 		pending.push({ track: parsed.value, lineIndex: i });

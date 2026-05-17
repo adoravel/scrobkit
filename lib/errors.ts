@@ -80,7 +80,12 @@ export const Errors = {
 
 	config: (tag: ConfigErrorReason, message: string): ConfigError => ({ kind: "config", tag, message }),
 
-	csv: (tag: CsvErrorReason, message: string, path?: string | undefined): CsvError => ({ kind: "csv", tag, message, path }),
+	csv: (tag: CsvErrorReason, message: string, path?: string | undefined): CsvError => ({
+		kind: "csv",
+		tag,
+		message,
+		path,
+	}),
 
 	auth: (message: string): AuthError => ({ kind: "auth", message }),
 

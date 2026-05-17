@@ -33,16 +33,18 @@ export async function runCsvPipeline(
 
 	return runPipeline<CsvContext>(pending, {
 		...opts,
-		commitSuccess: opts.noSkipMarker ? async ({ lineIndex }) => {
-			const skip = await markSkipped(doc, lineIndex);
-			if (skip.ok) {
-				doc = skip.value;
-			} else {
-				console.error(
-					`  ${symbols.warn} failed to mark line ${dim(`${lineIndex}`)} as skipped: ${dim(describe(skip.error))}`,
-				);
+		commitSuccess: opts.noSkipMarker
+			? async ({ lineIndex }) => {
+				const skip = await markSkipped(doc, lineIndex);
+				if (skip.ok) {
+					doc = skip.value;
+				} else {
+					console.error(
+						`  ${symbols.warn} failed to mark line ${dim(`${lineIndex}`)} as skipped: ${dim(describe(skip.error))}`,
+					);
+				}
+				return skip;
 			}
-			return skip;
-		} : void 0,
+			: void 0,
 	});
 }

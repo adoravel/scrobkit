@@ -8,7 +8,7 @@ export interface DocumentTrack {
 	readonly date: string;
 }
 
-export const CSV_HEADER: readonly string[] = ["artist", "album_artist", "album", "title", "date"] as const;
+export const columnFields = ["artist", "album_artist", "album", "title", "date"] as const;
 
 /**
  * immutable state representing a loaded csv document in memory
